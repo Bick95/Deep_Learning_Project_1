@@ -49,11 +49,11 @@ IMG_SHAPE = (IMG_SIZE, IMG_SIZE, 3)
 
 ## Hyperparameters
 NUM_CLASSES = 100
-EPOCHS = 400
+EPOCHS = 300
 BATCH_SIZE = 32
 #ARCHITECTURE = 'ResNet50'
 ARCHITECTURE ='InceptionV3'
-NODES_HIDDEN_0 = 1024
+NODES_HIDDEN_0 =512
 NODES_HIDDEN_1 = 512
 BASE_TRAINABLE = True
 REGULARIZER = 'l2' # 'None' | 'l1' | 'l2' 
@@ -69,7 +69,7 @@ params = dict(
     batch_size = BATCH_SIZE,
     architecture = ARCHITECTURE,
     nodes_hidden_0 = NODES_HIDDEN_0,
-    nodes_hidden_1 = NODES_HIDDEN_1,
+    #nodes_hidden_1 = NODES_HIDDEN_1,
     base_trainable = BASE_TRAINABLE,
     regularizer = REGULARIZER,
     augmentation = AUGMENTATION,
@@ -226,7 +226,7 @@ model = tf.keras.Sequential([
   base_model,
   global_average_layer,
   flatten_operation,
-  #hidden_dense_layer_0,
+  hidden_dense_layer_0,
   prediction_layer
 ])
 
