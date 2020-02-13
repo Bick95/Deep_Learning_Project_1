@@ -52,10 +52,10 @@ IMG_SHAPE = (IMG_SIZE, IMG_SIZE, 3)
 NUM_CLASSES = 100
 EPOCHS = 1000
 BATCH_SIZE = 32
-#ARCHITECTURE = 'ResNet50'
-ARCHITECTURE = 'ResNet152'
-NODES_HIDDEN_0 = 1024
-NODES_HIDDEN_1 = 512
+ARCHITECTURE = 'ResNet50'
+#ARCHITECTURE = 'ResNet152'
+NODES_HIDDEN_0 = 512
+#NODES_HIDDEN_1 = 512
 BASE_TRAINABLE = False
 REGULARIZER = 'l2' # 'None' | 'l1' | 'l2' 
 REGULARIZATZION_STRENGTH = '0.01'
@@ -70,7 +70,7 @@ params = dict(
     batch_size = BATCH_SIZE,
     architecture = ARCHITECTURE,
     nodes_hidden_0 = NODES_HIDDEN_0,
-    nodes_hidden_1 = NODES_HIDDEN_1,
+    #nodes_hidden_1 = NODES_HIDDEN_1,
     base_trainable = BASE_TRAINABLE,
     regularizer = REGULARIZER,
     augmentation = AUGMENTATION,
@@ -87,7 +87,7 @@ now = datetime.now()
 TIME_STAMP = now.strftime("_%Y_%d_%m__%H_%M_%S__%f")
 MODEL_ID = 'Model_' + TIME_STAMP + '/'
 
-DATA_STORAGE_PATH = 'Results/Resnet152/'
+DATA_STORAGE_PATH = 'Results/'
 TRAINED_MODELS = 'Trained_Models/'
 MODEL_ARCHITECTURE = ARCHITECTURE + '/'
 path = DATA_STORAGE_PATH + TRAINED_MODELS + MODEL_ARCHITECTURE + MODEL_ID + '/'
@@ -189,7 +189,7 @@ model_saving_callback = ModelCheckpoint(
         # monitored quantity.
         verbose=0)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch', write_graph=False)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch') #, write_graph=False
 
 # Join list of required callbacks
 callbacks = [model_saving_callback, tensorboard_callback] # , early_stopping_callback
@@ -223,10 +223,10 @@ base_model.trainable = BASE_TRAINABLE
 #print('Base model:')
 #base_model.summary()
 
-global_average_layer = tf.keras.layers.GlobalAveragePooling2D()  # Suggested on TF tutorial page... 
+#global_average_layer = tf.keras.layers.GlobalAveragePooling2D()  # Suggested on TF tutorial page... 
 flatten_operation = layers.Flatten()
 hidden_dense_layer_0 = layers.Dense(NODES_HIDDEN_0, activation='relu', kernel_regularizer=regularizer)
-hidden_dense_layer_1 = layers.Dense(NODES_HIDDEN_1, activation='relu', kernel_regularizer=regularizer)
+#hidden_dense_layer_1 = layers.Dense(NODES_HIDDEN_1, activation='relu', kernel_regularizer=regularizer)
 prediction_layer = layers.Dense(NUM_CLASSES, activation='softmax', kernel_regularizer=regularizer)
 
 # Construct overall model
@@ -235,7 +235,8 @@ model = tf.keras.Sequential([
   base_model,
   global_average_layer,
   flatten_operation,
-  #hidden_dense_layer_0,
+  hidden_dense_layer_0,
+  #hidden_dense_layer_1,
   prediction_layer
 ])
 
