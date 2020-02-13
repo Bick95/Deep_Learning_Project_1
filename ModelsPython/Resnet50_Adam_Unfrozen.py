@@ -133,22 +133,24 @@ def preprocessing_function(x):
     """
       Can be used for data augmentation.
     """
-    if (AUGMENTATION):
-        datagen = ImageDataGenerator(
-        rotation_range=15,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        horizontal_flip=True,
-        )
-        x=datagen.fit(x_train) 
-
     return x
 
 # Training generator
 
+if AUGMENTATION:
+    augmentations = {"rotation_range": 15, 
+                    "width_shift_range": 0.1, 
+                    "height_shift_range": 0.1, 
+                    "horizontal_flip": True,
+                    # ...
+                    }
+else:
+    augmentations = {}
+
 # The 1./255 is to convert from uint8 to float32 in range [0,1].
 train_image_generator = tf.keras.preprocessing.image.ImageDataGenerator(#rescale=1./255, # Done already 
-                                                     preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
+                                                     #preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
+                                                     **augmentations
                                                      )
 
 train_data_gen = train_image_generator.flow(x_train, 
