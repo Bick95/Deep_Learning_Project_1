@@ -48,11 +48,11 @@ BATCH_SIZE = 32
 ARCHITECTURE = 'InceptionV3'
 NODES_HIDDEN_0 = 512
 NODES_HIDDEN_1 = 512
-BASE_TRAINABLE = True
+BASE_TRAINABLE = False
 REGULARIZER = 'l2'  # 'None' | 'l1' | 'l2'
 REGULARIZATZION_STRENGTH = '0.01'
 AUGMENTATION = 1
-OPTIMIZER = "rmsprop"
+OPTIMIZER = "adam"
 ## For documentation purposes - Add all parameters set above to this dict
 params = dict(
     img_size=IMG_SIZE,
@@ -121,12 +121,6 @@ rand_idx = random.sample(range(0, 9999), test_data_size)
 # x_test = np.zeros((test_data_size,32,32,3))
 x_test = np.asarray([x_test_val[x] for x in rand_idx])
 y_test = np.asarray([y_test_val[x] for x in rand_idx])
-
-'''
-i=0
-for x in rand_idx:
-    x_test[i,:,:,:]= x_test_val[x,:,:,:]
-'''
 
 x_val = np.delete(x_test_val, rand_idx, 0)
 y_val = np.delete(y_test_val, rand_idx, 0)
@@ -236,7 +230,7 @@ class Resizer(layers.Layer):
 def accuracy_score(y_test, y_prediction):
     score = 0
     for i in range(0, len(y_test)):
-        if (y_test[i] == y_prediction[i]):
+        if (y_test[i] == np.argmax(y_prediction[i])):
             score = score + 1
     return (score / len(y_test))
 
@@ -273,7 +267,7 @@ model = tf.keras.Sequential([
 ])
 
 # Compile model & make some design choices
-'''
+
 model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001,
                                            beta_1=0.9,
                                            beta_2=0.999,
@@ -293,7 +287,7 @@ model.compile(optimizer=tf.optimizers.RMSprop(learning_rate=0.0001,
                                               ),
               loss='sparse_categorical_crossentropy',  # Capable of working with regularization
               metrics=['accuracy', 'sparse_categorical_crossentropy'])
-
+'''
 # Construct computational graph with proper dimensions
 inputs = np.random.random([1] + list(IMG_SHAPE)).astype(np.float32)
 model(inputs)
@@ -327,14 +321,19 @@ history = model.fit(
 )
 
 # Save the entire model as a final model to a HDF5 file.
-name = 'final_model'
-model.save(path+name+'.h5')
+
+#:model.load_weights('final_model.h5')
 
 predictions = model.predict(x_test)
 
+print("Predictions are", np.argmax(predictions[0]))
+print("Y_test is ",y_test)
 test_accuracy = accuracy_score(y_test, predictions)
 
 print("Final Test Accuracy ", test_accuracy)
+
+name = 'final_model'
+model.save(path+name+'.h5')
 
 # Record training progress
 with open(path + 'training_progress.csv', 'w', newline='') as file:
@@ -375,6 +374,8 @@ with open(path + 'training_progress.csv', 'w', newline='') as file:
     file.close()
 
 with open(path + 'final_test_accuracy.txt', 'w', newline='') as file:
-    file.write("Finale Test Accuracy ", test_accuracy)
+    file.write("Final Test Accuracy ")
+    file.write(str(test_accuracy))
+    file.close()
 
 print('Done.')
