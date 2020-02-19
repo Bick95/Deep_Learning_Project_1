@@ -24,7 +24,7 @@ import csv
 import json
 import numpy as np
 from datetime import datetime
-
+import random
 # Tensorflow
 import tensorflow as tf
 keras = tf.keras
@@ -33,6 +33,7 @@ from tensorflow.keras import layers, models, optimizers, regularizers
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from sklearn.metrics import accuracy_score
 
 '''
 print(tf.__version__)
@@ -53,13 +54,13 @@ EPOCHS = 300
 BATCH_SIZE = 32
 #ARCHITECTURE = 'ResNet50'
 ARCHITECTURE ='InceptionV3'
-NODES_HIDDEN_0 =512
+NODES_HIDDEN_0 = 512
 NODES_HIDDEN_1 = 512
 BASE_TRAINABLE = True
 REGULARIZER = 'l2' # 'None' | 'l1' | 'l2' 
 REGULARIZATZION_STRENGTH = '0.01'
-AUGMENTATION = 0
-
+AUGMENTATION = 1
+OPTIMIZER = "rmsprop"
 ## For documentation purposes - Add all parameters set above to this dict
 params = dict(
     img_size = IMG_SIZE,
@@ -69,10 +70,11 @@ params = dict(
     batch_size = BATCH_SIZE,
     architecture = ARCHITECTURE,
     nodes_hidden_0 = NODES_HIDDEN_0,
-    #nodes_hidden_1 = NODES_HIDDEN_1,
+   
     base_trainable = BASE_TRAINABLE,
     regularizer = REGULARIZER,
     augmentation = AUGMENTATION,
+    optimier = OPTIMIZER,
     regularization_strength = REGULARIZATZION_STRENGTH,
 )
 
@@ -86,11 +88,12 @@ now = datetime.now()
 TIME_STAMP = now.strftime("_%Y_%d_%m__%H_%M_%S__%f")
 MODEL_ID = 'Model_' + TIME_STAMP + '/'
 
-DATA_STORAGE_PATH = '/data/s3993914/Dl_output//'
+DATA_STORAGE_PATH = '/data/s3993914/Dl_output/'
 TRAINED_MODELS = 'Trained_Models/'
 MODEL_ARCHITECTURE = ARCHITECTURE + '/'
 path = DATA_STORAGE_PATH + TRAINED_MODELS + MODEL_ARCHITECTURE + MODEL_ID
-
+TB_LOG_DIR = path + 'Tensorboard' + '/'
+'''
 ## Create folder
 if not os.path.exists(path):
     os.makedirs(path)
@@ -111,12 +114,28 @@ f.close()
 with open(path+'params.json', 'w') as f:
     json.dump(params, f)
 f.close()
-
+'''
 ## Obtain dataset
-(x_train, y_train), (x_test, y_test) = cifar100.load_data(label_mode='fine')
+(x_train, y_train), (x_test_val, y_test_val) = cifar100.load_data(label_mode='fine')
 
 # Normalize
-x_train, x_test = x_train / 255.0, x_test / 255.0
+x_train, x_test_val = x_train / 255.0, x_test_val / 255.0
+
+
+rand_idx=random.sample(range(0, 9999), 5000)
+
+x_test = [x_test_val[x] for x in rand_idx]
+y_test = [y_test_val[x] for x in rand_idx]
+
+
+
+x_val = np.delete(x_test_val,rand_idx)
+y_val = np.delete(y_test_val,rand_idx)
+
+
+print("Shape of Training dataset ", x_train.shape)
+print("Shape of Validation dataset ", x_val.shape)
+print("Shape of Test dataset  ",x_test.shape)
 
 ## Data Generators setup
 
@@ -126,6 +145,7 @@ def preprocessing_function(x):
     """
       Can be used for data augmentation.
     """
+    '''
     if (AUGMENTATION):
         datagen = ImageDataGenerator(
         rotation_range=15,
@@ -134,14 +154,26 @@ def preprocessing_function(x):
         horizontal_flip=True,
         )
         x=datagen.fit(x_train) 
-
+    '''
     return x
 
 # Training generator
 
+if AUGMENTATION:
+    augmentations = {"rotation_range": 15, 
+                    "width_shift_range": 0.1, 
+                    "height_shift_range": 0.1, 
+                    "horizontal_flip": True,
+                    # ...
+                    }
+else:
+    augmentations = {}
+
+
+
 # The 1./255 is to convert from uint8 to float32 in range [0,1].
 train_image_generator = tf.keras.preprocessing.image.ImageDataGenerator(#rescale=1./255, # Done already 
-                                                     preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
+                                                      **augmentations  # Pre-processing function may be passed here
                                                      )
 
 train_data_gen = train_image_generator.flow(x_train, 
@@ -156,7 +188,10 @@ test_image_generator = tf.keras.preprocessing.image.ImageDataGenerator(#rescale=
                                                      #preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
                                                      )
 
-test_data_gen = test_image_generator.flow(x_test, y_test)
+test_data_gen = test_image_generator.flow(x_val, y_val)
+
+
+
 
 ## Definition of callbacks adjusted from https://www.tensorflow.org/guide/keras/train_and_evaluate
 
@@ -181,9 +216,10 @@ model_saving_callback = ModelCheckpoint(
         # mode, the direction is automatically inferred from the name of the
         # monitored quantity.
         verbose=0)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch')
 
 # Join list of required callbacks
-callbacks = [model_saving_callback] # , early_stopping_callback
+callbacks = [model_saving_callback,early_stopping_callback] # , early_stopping_callback
 
 ## Helper Layer
 
@@ -194,7 +230,7 @@ class Resizer(layers.Layer):
     super(Resizer, self).__init__()
 
   def build(self, input_shapes):
-    pass
+      pass
   
   def call(self, input):
     return tf.image.resize(input, (IMG_SIZE, IMG_SIZE))
@@ -231,6 +267,7 @@ model = tf.keras.Sequential([
 ])
 
 # Compile model & make some design choices
+'''
 model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001,
                                            beta_1=0.9,
                                            beta_2=0.999,
@@ -240,7 +277,16 @@ model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001,
                                            ),
               loss='sparse_categorical_crossentropy',  # Capable of working with regularization
               metrics=['accuracy', 'sparse_categorical_crossentropy'])
-
+'''
+model.compile(optimizer=tf.optimizers.RMSprop(learning_rate=0.0001,
+                                              rho=0.9,
+                                              momentum=0.0,
+                                              epsilon=1e-07,
+                                              centered=False,
+                                              name='RMSprop'
+                                              ),
+              loss='sparse_categorical_crossentropy',  # Capable of working with regularization
+              metrics=['accuracy', 'sparse_categorical_crossentropy'])
 
 # Construct computational graph with proper dimensions
 inputs = np.random.random([1] + list(IMG_SHAPE)).astype(np.float32)
@@ -277,6 +323,12 @@ history = model.fit(
 # Save the entire model as a final model to a HDF5 file.
 name = 'final_model'
 model.save(path+name+'.h5')
+
+predictions = model.predict(x_test)
+
+test_accuracy = accuracy_score(y_test,predictions)
+
+print("Final Test Accuracy ",test_accuracy)
 
 # Record training progress
 with open(path+'training_progress.csv', 'w', newline='') as file:
@@ -316,5 +368,8 @@ with open(path+'training_progress.csv', 'w', newline='') as file:
                          ])
     file.close()
 
-print('Done.')
+with open(path+'final_test_accuracy.txt', 'w', newline='') as file:
+    file.write("Finale Test Accuracy ",test_accuracy)
 
+
+print('Done.')
