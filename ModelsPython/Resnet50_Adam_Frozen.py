@@ -171,9 +171,13 @@ test_data_gen = test_image_generator.flow(x_test, y_test)
 
 early_stopping_callback = EarlyStopping(
         monitor='val_accuracy',    # Stop training when `val_loss` is no longer improving
-        min_delta=0,               # "no longer improving" being defined as "no better than 0|5e-1 less"
-        patience=2,                # "no longer improving" being further defined as "for at least 2 epochs"
-        verbose=0)                 # Quantity of printed output
+        min_delta=0,               # "no longer improving" being defined as "no better than 0 less"
+        patience=5,                # "no longer improving" being further defined as "for at least 2 epochs"
+        verbose=0,                 # Quantity of printed output
+        mode='max',               # In 'max' mode, training will stop when the quantity monitored has stopped increasing;
+        #baseline=None,
+        #restore_best_weights=False
+        )
 
 model_saving_callback = ModelCheckpoint(
         filepath=path+'best_model.h5',
@@ -194,7 +198,7 @@ model_saving_callback = ModelCheckpoint(
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch') #, write_graph=False
 
 # Join list of required callbacks
-callbacks = [model_saving_callback, tensorboard_callback] # , early_stopping_callback
+callbacks = [model_saving_callback, tensorboard_callback, early_stopping_callback]
 
 ## Helper Layer
 
