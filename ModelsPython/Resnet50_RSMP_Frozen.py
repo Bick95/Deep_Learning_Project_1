@@ -50,13 +50,13 @@ IMG_SHAPE = (IMG_SIZE, IMG_SIZE, 3)
 
 ## Hyperparameters
 NUM_CLASSES = 100
-EPOCHS = 1000
+EPOCHS = 300
 BATCH_SIZE = 32
-#ARCHITECTURE = 'ResNet50'
-ARCHITECTURE = 'ResNet152'
-NODES_HIDDEN_0 = 1024
-NODES_HIDDEN_1 = 512
-BASE_TRAINABLE = True
+ARCHITECTURE = 'ResNet50'
+#ARCHITECTURE = 'ResNet152'
+NODES_HIDDEN_0 = 512
+#NODES_HIDDEN_1 = 512
+BASE_TRAINABLE = False
 REGULARIZER = 'l2' # 'None' | 'l1' | 'l2' 
 REGULARIZATZION_STRENGTH = '0.01'
 AUGMENTATION = 0
@@ -70,7 +70,7 @@ params = dict(
     batch_size = BATCH_SIZE,
     architecture = ARCHITECTURE,
     nodes_hidden_0 = NODES_HIDDEN_0,
-    nodes_hidden_1 = NODES_HIDDEN_1,
+    #nodes_hidden_1 = NODES_HIDDEN_1,
     base_trainable = BASE_TRAINABLE,
     regularizer = REGULARIZER,
     augmentation = AUGMENTATION,
@@ -87,7 +87,7 @@ now = datetime.now()
 TIME_STAMP = now.strftime("_%Y_%d_%m__%H_%M_%S__%f")
 MODEL_ID = 'Model_' + TIME_STAMP + '/'
 
-DATA_STORAGE_PATH = 'Results/Resnet152/'
+DATA_STORAGE_PATH = 'Results/'
 TRAINED_MODELS = 'Trained_Models/'
 MODEL_ARCHITECTURE = ARCHITECTURE + '/'
 path = DATA_STORAGE_PATH + TRAINED_MODELS + MODEL_ARCHITECTURE + MODEL_ID + '/'
@@ -133,22 +133,24 @@ def preprocessing_function(x):
     """
       Can be used for data augmentation.
     """
-    if (AUGMENTATION):
-        datagen = ImageDataGenerator(
-        rotation_range=15,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        horizontal_flip=True,
-        )
-        x=datagen.fit(x_train) 
-
     return x
 
 # Training generator
 
+if AUGMENTATION:
+    augmentations = {"rotation_range": 15, 
+                    "width_shift_range": 0.1, 
+                    "height_shift_range": 0.1, 
+                    "horizontal_flip": True,
+                    # ...
+                    }
+else:
+    augmentations = {}
+
 # The 1./255 is to convert from uint8 to float32 in range [0,1].
 train_image_generator = tf.keras.preprocessing.image.ImageDataGenerator(#rescale=1./255, # Done already 
-                                                     preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
+                                                     #preprocessing_function=preprocessing_function  # Pre-processing function may be passed here
+                                                     **augmentations
                                                      )
 
 train_data_gen = train_image_generator.flow(x_train, 
@@ -189,7 +191,7 @@ model_saving_callback = ModelCheckpoint(
         # monitored quantity.
         verbose=0)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch', write_graph=False)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR, update_freq='epoch') #, write_graph=False
 
 # Join list of required callbacks
 callbacks = [model_saving_callback, tensorboard_callback] # , early_stopping_callback
@@ -226,7 +228,7 @@ base_model.trainable = BASE_TRAINABLE
 global_average_layer = tf.keras.layers.GlobalAveragePooling2D()  # Suggested on TF tutorial page... 
 flatten_operation = layers.Flatten()
 hidden_dense_layer_0 = layers.Dense(NODES_HIDDEN_0, activation='relu', kernel_regularizer=regularizer)
-hidden_dense_layer_1 = layers.Dense(NODES_HIDDEN_1, activation='relu', kernel_regularizer=regularizer)
+#hidden_dense_layer_1 = layers.Dense(NODES_HIDDEN_1, activation='relu', kernel_regularizer=regularizer)
 prediction_layer = layers.Dense(NUM_CLASSES, activation='softmax', kernel_regularizer=regularizer)
 
 # Construct overall model
@@ -235,18 +237,19 @@ model = tf.keras.Sequential([
   base_model,
   global_average_layer,
   flatten_operation,
-  #hidden_dense_layer_0,
+  hidden_dense_layer_0,
+  #hidden_dense_layer_1,
   prediction_layer
 ])
 
 # Compile model & make some design choices
-model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001,
-                                           beta_1=0.9,
-                                           beta_2=0.999,
-                                           epsilon=1e-07,
-                                           amsgrad=False,
-                                           name='Adam'
-                                           ),
+model.compile(optimizer=tf.optimizers.RMSprop(learning_rate=0.0001,
+                                              rho=0.9,
+                                              momentum=0.0,
+                                              epsilon=1e-07,
+                                              centered=False,
+                                              name='RMSprop'
+                                              ),
               loss='sparse_categorical_crossentropy',  # Capable of working with regularization
               metrics=['accuracy', 'sparse_categorical_crossentropy'])
 
