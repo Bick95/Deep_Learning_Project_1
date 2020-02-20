@@ -5,6 +5,7 @@
 import os
 import csv
 import json
+import random
 from shutil import copyfile  # Making copy of this file instance (including param settings used)
 import numpy as np
 from datetime import datetime
