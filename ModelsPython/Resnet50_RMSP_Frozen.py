@@ -36,7 +36,7 @@ REGULARIZER = 'l2' # 'None' | 'l1' | 'l2'
 REGULARIZATZION_STRENGTH = '0.01'
 AUGMENTATION = 0
 PATIENCE = 20
-OPTIMIZER = 'Adam'
+OPTIMIZER = 'RMSProp'
 
 ## For documentation purposes - Add all parameters set above to this dict
 params = dict(

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --time=10:00:00
-#SBATCH --job-name=RFA
+#SBATCH --job-name=DL_P1_testrun
 #SBATCH --mail-type=END,FAILL
-#SBATCH --mail-user=d.bick@student.rug.nl
+#SBATCH --mail-user=
 #SBATCH --output=job-%j.log
 #SBATCH --mem=10GB
 #SBATCH --nodes=1
